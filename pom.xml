@@ -27,7 +27,7 @@
       <url>https://clojars.org/repo</url>
     </repository>
   </distributionManagement>
-  <description></description>
+  <description>A simple data validator for Clojure and Clojurescript.</description>
   <url>https://github.com/ludbek/validator</url>
   <licenses>
     <license>

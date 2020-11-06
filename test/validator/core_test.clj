@@ -35,6 +35,12 @@
           schema {:full-name (v/required)
                   :email (v/required)}
           errors (v/validate data schema {:patch true})]
+      (is (= nil errors))))
+  
+  (testing "it short circuits the validation"
+    (let [data {:full-name ""}
+          schema {:full-name [(v/required :required? false) (v/is-string)]}
+          errors (v/validate data schema)]
       (is (= nil errors)))))
 
 (deftest test-min-len
