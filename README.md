@@ -7,6 +7,29 @@
 - strict and partial validations for web APIs
 - easy custom error messages for i18n
 
+- [Walkthrough](#walkthrough)
+- [validate](#validate)
+  * [API](#api)
+  * [Multiple validators](#multiple-validators)
+  * [Short circuit validation](#short-circuit-validation)
+  * [Strict validation](#strict-validation)
+  * [Partial validation](#partial-validation)
+- [Custom validators](#custom-validators)
+- [Built in validators](#built-in-validators)
+  * [required](#required)
+    + [Skip reset of the validation if the value is not required](#skip-reset-of-the-validation-if-the-value-is-not-required)
+    + [Override default error message](#override-default-error-message)
+  * [equals-to](#equals-to)
+    + [Override default error message](#override-default-error-message-1)
+  * [email](#email)
+  * [is-boolean](#is-boolean)
+  * [is-number](#is-number)
+  * [is-string](#is-string)
+  * [enum](#enum)
+  * [min-len](#min-len)
+  * [max-len](#max-len)
+
+
 ## Walkthrough
 
 ```clojure
@@ -24,8 +47,13 @@
       "The passwords are not equal.")))
 
 ; If the values are invalid it returns a map of errors
-(validate {:username "" :password "apassword" :confirm-password "bpassword"}
-          {:username is-required :password is-required :confirm-password (confirm-password :password)})
+; (validate data schema option)
+(validate {:username ""
+           :password "apassword"
+           :confirm-password "bpassword"}
+          {:username is-required
+           :password is-required
+	   :confirm-password [is-required (confirm-password :password)]})
 ; {:username "This field is required.", :confirm-password "The passwords are not equal."}
 
 ; If the values are valid it returns nil
@@ -38,9 +66,35 @@
 `validate` function takes `data`, `schema` and optional `config`.
 `config` is a map which defaults to `{:strict true :patch false}`
 
+### API
+```
+(validate data schema option)
+```
+
 ### Multiple validators
+Its possible to validated a key against multiple validators.
+For that we should simply provide a vector of validator functions.
+
+```clojure
+(defn is-string [value all-values field]
+  (if (string? value)
+    nil
+    "This field must be a string."))
+
+(defn is-required [value all-values field]
+  (if (or (nil? value) (= value ""))
+    "This field is required."))
+
+(validate {:username 1} {:username [is-require is-string]})
+; {:username "This field must be a string."}
+```
 
 ### Short circuit validation
+Sometime we want `validate` to stop validating a value if
+certain condition is met. For that a validator should return `:skip` keyword.
+
+Thats how `required` validator does to instruct `validate` function to skip
+rest of the validators if a value is `nil` like.
 
 ### Strict validation
 By default `validate` complains if we give unknown fields.
@@ -157,16 +211,14 @@ in the data. Its useful for checking if a password matches its confirmation.
 #### Override default error message
 We can override default error message by passing `:error` keyword argument to `equals-to`
 
+```clojure
 (require '[validator.core :refer [validate required equals-to]])
 
 (validate {:password "apassword" :confirm-password "bpassword"}
           {:password (required) :confirm-password (equals-to :field :password
 	                                                     :error "Passwords do not match")})
 ; {:confirm-password "Passwords do not match."}
-
-### min-len
-
-### max-len
+```
 
 ### email
 It checks if a given value is a proper email or not.
@@ -258,3 +310,28 @@ We can also override the default error message by passing keyword argument `:err
 (validate {:address "Madagascar"} {:address (enum :values #{"Kathmandu" "Sydney"})})
 ; {:address "Invalid value."}
 ```
+
+### min-len
+It complains if a given string is smaller than specified length.
+
+```clojure
+(require '[validator.core :refer [validate min-len]])
+
+(validate {:password "123"}
+          {:password (min-len :length 8)})
+; {:password "This field should be at least 8 characters long."}
+```
+It accepts optional argument `:error` for custom error message.
+
+### max-len
+It complains if a given string is bigger than specified length.
+
+```clojure
+(require '[validator.core :refer [validate max-len]])
+
+(validate {:password "1234567890"}
+          {:password (max-len :length 8)})
+; {:password "This field should be at most 8 characters long."}
+```
+
+It accepts optional argument `:error` for custom error message.
