@@ -7,6 +7,7 @@
 - strict and partial validations for web APIs
 - easy custom error messages for i18n
 
+## Table of content
 - [Walkthrough](#walkthrough)
 - [validate](#validate)
   * [API](#api)
